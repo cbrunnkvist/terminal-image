@@ -70,6 +70,25 @@ function calculateWidthHeight(imageWidth, imageHeight, inputWidth, inputHeight, 
 	return {width, height};
 }
 
+// Heuristic check for Kitty graphics protocol support based on TTY + environment
+function isKittyGraphicsLikely() {
+	// Don't attempt native kitty rendering if stdout isn't a TTY
+	if (!process.stdout.isTTY) {
+		return false;
+	}
+
+	const env = process.env;
+
+	// Strong indicators
+	if (env.KITTY_WINDOW_ID) return true;
+	const term = env.TERM || '';
+	if (/kitty/i.test(term)) return true;
+	if (env.TERM_PROGRAM && env.TERM_PROGRAM.toLowerCase() === 'kitty') return true;
+
+	// Otherwise assume not
+	return false;
+}
+
 async function render(buffer, {width: inputWidth, height: inputHeight, preserveAspectRatio}) {
 	const image = await Jimp.fromBuffer(Buffer.from(buffer)); // eslint-disable-line n/prefer-global/buffer
 	const {bitmap} = image;
@@ -222,9 +241,10 @@ terminalImage.buffer = async (buffer, {width = '100%', height = '100%', preserve
 	if (!isGifFrame && process.stdout.isTTY && process.env.TERM_PROGRAM !== 'iTerm.app') {
 		const {env} = process;
 
-		// Check for environment variables that indicate Kitty or Kitty-like terminals
-		const isKittyLike = env.TERM === 'xterm-kitty'
-			|| env.KITTY_WINDOW_ID
+		// Use extracted helper for the primary Kitty/TTY heuristic.
+		// Keep a few historical fallbacks (WezTerm/konsole) that were previously checked inline.
+		const isKittyLike = isKittyGraphicsLikely()
+			|| env.TERM === 'xterm-kitty'
 			|| env.TERM_PROGRAM === 'WezTerm'
 			|| env.TERM_PROGRAM === 'konsole'
 			|| env.KONSOLE_VERSION;
