@@ -77,10 +77,12 @@ function supportsTerminalGraphics() {
 		return false;
 	}
 
-	const env = process.env;
+	const {env} = process;
 
 	// Strong indicators for Kitty
-	if (env.KITTY_WINDOW_ID) return true;
+	if (env.KITTY_WINDOW_ID) {
+		return true;
+	}
 
 	// Check TERM_PROGRAM for known graphics-capable terminals
 	const termProgram = env.TERM_PROGRAM || '';
@@ -250,16 +252,16 @@ terminalImage.buffer = async (buffer, {width = '100%', height = '100%', preserve
 		return render(buffer, {height, width, preserveAspectRatio});
 	}
 
-  // Check for terminal graphics support
-  // Note: We disable graphics protocols for GIF frames as they don't work well with log-update
-  if (!isGifFrame && supportsTerminalGraphics()) {
-    // Use terminal graphics protocol for high-quality rendering
-    try {
-      return await renderKitty(buffer, {width, height, preserveAspectRatio});
-    } catch {
-      return render(buffer, {height, width, preserveAspectRatio});
-    }
-  }
+	// Check for terminal graphics support
+	// Note: We disable graphics protocols for GIF frames as they don't work well with log-update
+	if (!isGifFrame && supportsTerminalGraphics()) {
+		// Use terminal graphics protocol for high-quality rendering
+		try {
+			return await renderKitty(buffer, {width, height, preserveAspectRatio});
+		} catch {
+			return render(buffer, {height, width, preserveAspectRatio});
+		}
+	}
 
 	// Fall back to iTerm2 or ANSI blocks
 	return termImg(buffer, {
